@@ -1,31 +1,55 @@
 #!/bin/bash
 
-# Variables
+# Define variables
 PYTHON_SCRIPT_URL="https://raw.githubusercontent.com/dismaster/NeoxaMultiNodeInstaller/main/install_neoxa_smartnodes.py"
-SCRIPT_NAME="install_neoxa_smartnodes.py"
+PYTHON_SCRIPT_NAME="install_neoxa_smartnodes.py"
+REQUIRED_PACKAGES=("python3" "python3-pip" "curl" "screen")
 
-# Update package list and install prerequisites
-echo -e "\e[96mUpdating package list and installing prerequisites...\e[0m"
-sudo apt-get update -y > /dev/null
-sudo apt-get install -y wget curl git python3-psutil python3-colorama screen > /dev/null
+# Function to install required packages
+install_prerequisites() {
+    echo "Updating package list and installing prerequisites..."
+    sudo apt-get update
+    for pkg in "${REQUIRED_PACKAGES[@]}"; do
+        if ! dpkg -l | grep -q "^ii  $pkg "; then
+            sudo apt-get install -y $pkg
+        fi
+    done
+}
 
-# Install Python if not installed
-if ! command -v python3 &> /dev/null; then
-    echo -e "\e[93mPython is not installed. Installing Python...\e[0m"
-    sudo apt-get install -y python3 python3-venv python3-pip > /dev/null
-else
-    echo -e "\e[92mPython is already installed.\e[0m"
-fi
+# Function to download the Python script
+download_python_script() {
+    echo "Downloading the Python script..."
+    curl -sSL $PYTHON_SCRIPT_URL -o $PYTHON_SCRIPT_NAME
+    if [ $? -ne 0 ]; then
+        echo "Failed to download the Python script."
+        exit 1
+    fi
+    echo "Python script downloaded successfully."
+}
 
-# Download the Python script from GitHub
-echo -e "\e[96mDownloading the Python script from GitHub...\e[0m"
-wget -O $SCRIPT_NAME $PYTHON_SCRIPT_URL > /dev/null
+# Function to check if Python is installed
+check_python() {
+    if ! command -v python3 &> /dev/null; then
+        echo "Python 3 is not installed. Please install Python 3 and try again."
+        exit 1
+    fi
+}
 
-# Get the current user's home directory
-USER_HOME=$(eval echo ~$SUDO_USER)
+# Install prerequisites
+install_prerequisites
 
-# Run the Python script with sudo, passing the user home directory
-echo -e "\e[96mRunning the Python script...\e[0m"
-sudo python3 $SCRIPT_NAME --home-dir $USER_HOME
+# Download the Python script
+download_python_script
 
-echo -e "\e[92mSetup and execution completed.\e[0m"
+# Check for Python 3
+check_python
+
+# Instructions to the user
+echo "************************************************************"
+echo "* The setup is complete. To start the interactive Python script,"
+echo "* use the following command:"
+echo "*"
+echo "* python3 $PYTHON_SCRIPT_NAME"
+echo "*"
+echo "* Follow the on-screen instructions to set up your Neoxa nodes."
+echo "************************************************************"
