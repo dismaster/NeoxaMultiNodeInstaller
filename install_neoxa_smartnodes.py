@@ -268,8 +268,13 @@ def main():
     else:
         next_node_number = 1
 
-    num_smartnodes = int(input(f"{Fore.CYAN}Enter the number of additional smartnodes to install: "))
-    
+    while True:
+        try:
+            num_smartnodes = int(input(f"{Fore.CYAN}Enter the number of additional smartnodes to install: "))
+            break
+        except ValueError:
+            print(f"{Fore.RED}Please enter a valid number.")
+
     if not check_system_requirements():
         print(f"{Fore.RED}System does not meet the requirements for installing additional nodes.")
         return
