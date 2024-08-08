@@ -1,6 +1,4 @@
 import os
-import sys
-import argparse
 import subprocess
 import urllib.request
 import zipfile
@@ -12,11 +10,30 @@ from colorama import init, Fore, Style
 
 init(autoreset=True)
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Neoxa Smartnode Installer")
-    parser.add_argument("--home-dir", type=str, required=True, help="Home directory of the current user")
-    args = parser.parse_args()
-    return args.home_dir
+# Define constants
+neoxa_bin_dir = "/usr/local/bin"
+neoxa_bin = os.path.join(neoxa_bin_dir, "neoxad")
+neoxa_cli_bin = os.path.join(neoxa_bin_dir, "neoxa-cli")
+neoxa_download_url = "https://github.com/NeoxaChain/Neoxa/releases/download/v5.1.1.4/neoxad-5.1.1.4-linux64.zip"
+bootstrap_url = "https://downloads.neoxa.net/bootstrap.zip"
+bootstrap_path = os.path.expanduser("~/bootstrap.zip")
+
+# Configuration template with bind address
+neoxa_conf_template = """
+rpcuser={rpcuser}
+rpcpassword={rpcpassword}
+rpcport=9494
+rpcallowip=127.0.0.1
+server=1
+daemon=1
+listen=1
+smartnodeblsprivkey={smartnodeblsprivkey}
+externalip={externalip}
+{bind_address}
+"""
+
+# Define donation address
+donation_address = "GaRJcuLsqEcjbFjJVcenWG8EXsFmULdMwo"
 
 def print_banner():
     banner = f"""
@@ -24,7 +41,7 @@ def print_banner():
 {Fore.MAGENTA}*          Script Developer: Ch3ckr         *
 {Fore.MAGENTA}*                                           *
 {Fore.MAGENTA}*             Donation Address              *
-{Fore.MAGENTA}*   {donation_address}   *
+{Fore.MAGENTA}*   {donation_address.center(39)}   *
 {Fore.MAGENTA}*********************************************
 """
     print(banner)
@@ -35,7 +52,7 @@ def print_thank_you():
 {Fore.LIGHTMAGENTA_EX}*       Thank you for using this script!      *
 {Fore.LIGHTMAGENTA_EX}*                                           *
 {Fore.LIGHTMAGENTA_EX}*             Donation Address              *
-{Fore.LIGHTMAGENTA_EX}*   {donation_address}   *
+{Fore.LIGHTMAGENTA_EX}*   {donation_address.center(39)}   *
 {Fore.LIGHTMAGENTA_EX}*********************************************
 """
     print(thank_you)
@@ -51,7 +68,7 @@ def install_neoxad():
     if is_neoxad_installed():
         print(f"{Fore.YELLOW}neoxad is already installed. Skipping installation.")
         return
-    neoxa_zip = os.path.join(user_home_dir, "neoxad.zip")
+    neoxa_zip = os.path.expanduser("~/neoxad.zip")
     print(f"{Fore.CYAN}Downloading neoxad from {neoxa_download_url} to {neoxa_zip}")
     urllib.request.urlretrieve(neoxa_download_url, neoxa_zip)
     with zipfile.ZipFile(neoxa_zip, 'r') as zip_ref:
@@ -90,13 +107,14 @@ def create_data_dir(data_dir):
     else:
         print(f"{Fore.YELLOW}Directory already exists: {data_dir}")
 
-def write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip):
+def write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, bind_address):
     config_path = os.path.join(data_dir, "neoxa.conf")
     config_content = neoxa_conf_template.format(
         rpcuser=rpcuser,
         rpcpassword=rpcpassword,
         smartnodeblsprivkey=smartnodeblsprivkey,
-        externalip=externalip
+        externalip=externalip,
+        bind_address=bind_address
     )
     with open(config_path, "w") as config_file:
         config_file.write(config_content)
@@ -184,103 +202,80 @@ def add_crontab_entry(script_path):
 def start_smartnode(data_dir):
     command = [neoxa_bin, "-datadir=" + data_dir]
     subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(f"{Fore.GREEN}Started smartnode with data directory: {data_dir}")
+    print(f"{Fore.GREEN}Started Neoxa smartnode with data directory: {data_dir}")
+
+def get_existing_nodes(home_dir):
+    existing_nodes = []
+    for item in os.listdir(home_dir):
+        if item.startswith("neoxa_node_"):
+            try:
+                node_number = int(item.split("_")[-1])
+                existing_nodes.append(node_number)
+            except ValueError:
+                continue
+    return existing_nodes
 
 def check_system_requirements():
-    cpu_cores = psutil.cpu_count(logical=True)
-    memory = psutil.virtual_memory().total / (1024 * 1024 * 1024)  # GB
-    disk_space = psutil.disk_usage('/').free / (1024 * 1024 * 1024)  # GB
-    print(f"{Fore.CYAN}System resources available:\n"
-          f"CPU Cores: {cpu_cores}\n"
-          f"Memory: {memory:.2f} GB\n"
-          f"Disk Space: {disk_space:.2f} GB")
-    
-    required_memory = 4
-    required_disk_space = 60
+    required_cores = 2
+    required_memory = 4 * 1024 * 1024 * 1024  # 4GB in bytes
+    required_disk_space = 60 * 1024 * 1024 * 1024  # 60GB in bytes
 
-    if memory < required_memory:
-        print(f"{Fore.RED}Error: Not enough memory available. Required: {required_memory} GB, Available: {memory:.2f} GB")
-        return False
-    if disk_space < required_disk_space:
-        print(f"{Fore.RED}Error: Not enough disk space available. Required: {required_disk_space} GB, Available: {disk_space:.2f} GB")
-        return False
-    return True
+    available_cores = psutil.cpu_count(logical=False)
+    available_memory = psutil.virtual_memory().available
+    available_disk_space = psutil.disk_usage('/').free
 
-def check_and_create_swap():
-    swap = subprocess.run(['swapon', '--show'], capture_output=True, text=True)
-    if swap.stdout:
-        print(f"{Fore.GREEN}Swap is already enabled.")
+    print(f"{Fore.CYAN}System resources available:")
+    print(f"{Fore.CYAN}CPU Cores: {available_cores}")
+    print(f"{Fore.CYAN}Memory: {available_memory / (1024 * 1024 * 1024):.2f} GB")
+    print(f"{Fore.CYAN}Disk Space: {available_disk_space / (1024 * 1024 * 1024):.2f} GB")
+
+    if available_cores < required_cores:
+        print(f"{Fore.RED}Error: Not enough CPU cores available.")
+        exit(1)
+    if available_memory < required_memory:
+        print(f"{Fore.RED}Error: Not enough memory available.")
+        exit(1)
+    if available_disk_space < required_disk_space:
+        print(f"{Fore.RED}Error: Not enough disk space available.")
+        exit(1)
+
+def prompt_for_natural_config():
+    use_nat = input(f"{Fore.CYAN}Are you using NAT? (yes/no): ").strip().lower()
+    if use_nat == 'yes':
+        ip_type = input(f"{Fore.CYAN}Do you use IPv6 or IPv4? (ipv4/ipv6): ").strip().lower()
+        if ip_type == 'ipv6':
+            bind_address = f"bind=[{input(Fore.CYAN + 'Enter your IPv6 address: ').strip()}]:8788"
+        else:
+            bind_address = f"bind={input(Fore.CYAN + 'Enter your IPv4 address: ').strip()}:8788"
     else:
-        print(f"{Fore.YELLOW}No swap found. Creating a 4GB swap file...")
-        run_command(['sudo', 'fallocate', '-l', '4G', '/swapfile'])
-        run_command(['sudo', 'chmod', '600', '/swapfile'])
-        run_command(['sudo', 'mkswap', '/swapfile'])
-        run_command(['sudo', 'swapon', '/swapfile'])
-        with open('/etc/fstab', 'a') as fstab:
-            fstab.write('/swapfile none swap sw 0 0\n')
-        print(f"{Fore.GREEN}Swap file created and enabled.")
-
-def setup_smartnode(home_dir, node_number, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir):
-    data_dir = os.path.join(home_dir, f"neoxa_node_{node_number}")
-    create_data_dir(data_dir)
-    write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip)
-    copy_bootstrap(temp_bootstrap_dir, data_dir)
-    script_path = create_bash_script(home_dir, node_number, data_dir)
-    add_crontab_entry(script_path)
-    start_smartnode(data_dir)
+        bind_address = ''
+    return bind_address
 
 def main():
-    global user_home_dir
-    user_home_dir = parse_arguments()
     print_banner()
+    check_system_requirements()
+    
+    home_dir = os.path.expanduser("~")
+    node_number = len(get_existing_nodes(home_dir)) + 1
+    data_dir = os.path.join(home_dir, f"neoxa_node_{node_number}")
 
-    existing_nodes = get_existing_nodes(user_home_dir)
-    num_existing_nodes = len(existing_nodes)
-    if existing_nodes:
-        next_node_number = max(existing_nodes) + 1
-    else:
-        next_node_number = 1
+    # Prompt user for NAT configuration and bind address
+    bind_address = prompt_for_natural_config()
 
-    while True:
-        try:
-            num_smartnodes = int(input(f"{Fore.CYAN}Enter the number of additional smartnodes to install: "))
-            break
-        except ValueError:
-            print(f"{Fore.RED}Please enter a valid number.")
-
-    if not check_system_requirements():
-        print(f"{Fore.RED}System does not meet the requirements for installing additional nodes.")
-        return
-
-    check_and_create_swap()
+    rpcuser = input(f"{Fore.CYAN}Enter RPC user: ").strip()
+    rpcpassword = input(f"{Fore.CYAN}Enter RPC password: ").strip()
+    smartnodeblsprivkey = input(f"{Fore.CYAN}Enter Smartnode BLS private key: ").strip()
+    externalip = input(f"{Fore.CYAN}Enter external IP: ").strip()
 
     install_neoxad()
     check_and_download_bootstrap()
-    
-    temp_bootstrap_dir = os.path.join(user_home_dir, "temp_bootstrap")
-    os.makedirs(temp_bootstrap_dir, exist_ok=True)
-    extract_bootstrap(temp_bootstrap_dir)
-
-    nodes_info = []
-    for i in range(next_node_number, next_node_number + num_smartnodes):
-        rpcuser = input(f"{Fore.CYAN}Enter RPC username for smartnode {i}: ")
-        rpcpassword = input(f"{Fore.CYAN}Enter RPC password for smartnode {i}: ")
-        smartnodeblsprivkey = input(f"{Fore.CYAN}Enter Smartnode BLS private key for smartnode {i}: ")
-        externalip = input(f"{Fore.CYAN}Enter external IP (and port) for smartnode {i}: ")
-        nodes_info.append((user_home_dir, i, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir))
-
-    threads = []
-    for node_info in nodes_info:
-        thread = threading.Thread(target=setup_smartnode, args=node_info)
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
-
-    shutil.rmtree(temp_bootstrap_dir)
-    print(f"{Fore.CYAN}Removed temporary bootstrap directory")
-
+    extract_bootstrap(temp_dir=os.path.expanduser("~/bootstrap_temp"))
+    create_data_dir(data_dir)
+    write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, bind_address)
+    copy_bootstrap(temp_dir=os.path.expanduser("~/bootstrap_temp"), data_dir=data_dir)
+    script_path = create_bash_script(home_dir, node_number, data_dir)
+    add_crontab_entry(script_path)
+    start_smartnode(data_dir)
     print_thank_you()
 
 if __name__ == "__main__":
