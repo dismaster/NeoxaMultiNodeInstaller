@@ -26,6 +26,14 @@ else
     sudo pip3 install --upgrade pip
 fi
 
+# Install screen if not installed
+if ! command -v screen &> /dev/null; then
+    echo "screen is not installed. Installing screen..."
+    sudo apt-get install -y screen
+else
+    echo "screen is already installed."
+fi
+
 # Install required Python packages
 echo "Installing required Python packages..."
 sudo pip3 install colorama psutil
