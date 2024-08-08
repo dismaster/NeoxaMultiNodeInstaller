@@ -33,10 +33,10 @@ donation_address = "GaRJcuLsqEcjbFjJVcenWG8EXsFmULdMwo"
 def print_banner():
     banner = f"""
 {Fore.MAGENTA}*********************************************
-{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX}           Script Developer: Ch3ckr          {Fore.MAGENTA}*
-{Fore.MAGENTA}*                                             *
-{Fore.MAGENTA}*              Donation Address              *
-{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX} {donation_address} {Fore.MAGENTA}*
+{Fore.MAGENTA}*          Script Developer: Ch3ckr          *
+{Fore.MAGENTA}*                                           *
+{Fore.MAGENTA}*             Donation Address               *
+{Fore.MAGENTA}*    {donation_address}    *
 {Fore.MAGENTA}*********************************************
 """
     print(banner)
@@ -44,10 +44,10 @@ def print_banner():
 def print_thank_you():
     thank_you = f"""
 {Fore.LIGHTMAGENTA_EX}*********************************************
-{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA}       Thank you for using this script!      {Fore.LIGHTMAGENTA_EX}*
-{Fore.LIGHTMAGENTA_EX}*                                             *
-{Fore.LIGHTMAGENTA_EX}*              Donation Address              *
-{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA} {donation_address} {Fore.LIGHTMAGENTA_EX}*
+{Fore.LIGHTMAGENTA_EX}*       Thank you for using this script!      *
+{Fore.LIGHTMAGENTA_EX}*                                           *
+{Fore.LIGHTMAGENTA_EX}*             Donation Address               *
+{Fore.LIGHTMAGENTA_EX}*    {donation_address}    *
 {Fore.LIGHTMAGENTA_EX}*********************************************
 """
     print(thank_you)
