@@ -21,8 +21,11 @@ fi
 echo -e "\e[96mDownloading the Python script from GitHub...\e[0m"
 wget -O $SCRIPT_NAME $PYTHON_SCRIPT_URL > /dev/null
 
-# Run the Python script
+# Get the current user's home directory
+USER_HOME=$(eval echo ~$SUDO_USER)
+
+# Run the Python script with sudo, passing the user home directory
 echo -e "\e[96mRunning the Python script...\e[0m"
-python3 $SCRIPT_NAME
+sudo python3 $SCRIPT_NAME --home-dir $USER_HOME
 
 echo -e "\e[92mSetup and execution completed.\e[0m"
