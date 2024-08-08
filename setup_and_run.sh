@@ -17,23 +17,6 @@ else
     echo -e "\e[92mPython is already installed.\e[0m"
 fi
 
-# Ensure pip is installed and updated
-if ! command -v pip3 &> /dev/null; then
-    echo -e "\e[93mpip is not installed. Installing pip...\e[0m"
-    sudo apt-get install -y python3-pip > /dev/null
-else
-    echo -e "\e[92mpip is already installed. Upgrading pip...\e[0m"
-    sudo pip3 install --upgrade pip > /dev/null
-fi
-
-# Install screen if not installed
-if ! command -v screen &> /dev/null; then
-    echo -e "\e[93mscreen is not installed. Installing screen...\e[0m"
-    sudo apt-get install -y screen > /dev/null
-else
-    echo -e "\e[92mscreen is already installed.\e[0m"
-fi
-
 # Download the Python script from GitHub
 echo -e "\e[96mDownloading the Python script from GitHub...\e[0m"
 wget -O $SCRIPT_NAME $PYTHON_SCRIPT_URL > /dev/null
