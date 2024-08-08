@@ -13,7 +13,7 @@ init(autoreset=True)
 neoxa_bin_dir = "/usr/local/bin"
 neoxa_bin = os.path.join(neoxa_bin_dir, "neoxad")
 neoxa_cli_bin = os.path.join(neoxa_bin_dir, "neoxa-cli")
-neoxa_download_url = "https://github.com/dismaster/NeoxaMultiNodeInstaller/main/install_neoxa_smartnodes.py"
+neoxa_download_url = "https://github.com/NeoxaChain/Neoxa/releases/download/v5.1.1.4/neoxad-5.1.1.4-linux64.zip"
 bootstrap_url = "https://downloads.neoxa.net/bootstrap.zip"
 bootstrap_path = "/tmp/bootstrap.zip"
 neoxa_conf_template = """
@@ -35,7 +35,8 @@ def print_banner():
 {Fore.MAGENTA}*********************************************
 {Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX}           Script Developer: Ch3ckr          {Fore.MAGENTA}*
 {Fore.MAGENTA}*                                             *
-{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX}    Donation Address: {donation_address}    {Fore.MAGENTA}*
+{Fore.MAGENTA}*              Donation Address              *
+{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX} {donation_address} {Fore.MAGENTA}*
 {Fore.MAGENTA}*********************************************
 """
     print(banner)
@@ -45,10 +46,15 @@ def print_thank_you():
 {Fore.LIGHTMAGENTA_EX}*********************************************
 {Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA}       Thank you for using this script!      {Fore.LIGHTMAGENTA_EX}*
 {Fore.LIGHTMAGENTA_EX}*                                             *
-{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA}    Donation Address: {donation_address}    {Fore.LIGHTMAGENTA_EX}*
+{Fore.LIGHTMAGENTA_EX}*              Donation Address              *
+{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA} {donation_address} {Fore.LIGHTMAGENTA_EX}*
 {Fore.LIGHTMAGENTA_EX}*********************************************
 """
     print(thank_you)
+
+def run_command(command):
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return result
 
 def is_neoxad_installed():
     return os.path.exists(neoxa_bin) and os.path.exists(neoxa_cli_bin)
@@ -58,17 +64,17 @@ def install_neoxad():
         print(f"{Fore.YELLOW}neoxad is already installed. Skipping installation.")
         return
     neoxa_zip = "/tmp/neoxad.zip"
-    print(f"Downloading neoxad from {neoxa_download_url} to {neoxa_zip}")
+    print(f"{Fore.CYAN}Downloading neoxad from {neoxa_download_url} to {neoxa_zip}")
     urllib.request.urlretrieve(neoxa_download_url, neoxa_zip)
     with zipfile.ZipFile(neoxa_zip, 'r') as zip_ref:
         zip_ref.extractall(neoxa_bin_dir)
     os.remove(neoxa_zip)
-    print("neoxad installed successfully")
+    print(f"{Fore.GREEN}neoxad installed successfully")
 
 def download_bootstrap():
-    print(f"Downloading bootstrap from {bootstrap_url} to {bootstrap_path}")
+    print(f"{Fore.CYAN}Downloading bootstrap from {bootstrap_url} to {bootstrap_path}")
     urllib.request.urlretrieve(bootstrap_url, bootstrap_path)
-    print(f"Downloaded bootstrap to {bootstrap_path}")
+    print(f"{Fore.GREEN}Downloaded bootstrap to {bootstrap_path}")
 
 def check_and_download_bootstrap():
     if os.path.exists(bootstrap_path):
@@ -76,25 +82,25 @@ def check_and_download_bootstrap():
         remote_file_size = int(remote_file_info.info()["Content-Length"])
         local_file_size = os.path.getsize(bootstrap_path)
         if remote_file_size != local_file_size:
-            print("Remote bootstrap file size has changed, downloading the new version.")
+            print(f"{Fore.CYAN}Remote bootstrap file size has changed, downloading the new version.")
             download_bootstrap()
         else:
-            print("Local bootstrap file is up to date.")
+            print(f"{Fore.GREEN}Local bootstrap file is up to date.")
     else:
         download_bootstrap()
 
 def extract_bootstrap(temp_dir):
-    print(f"Extracting bootstrap to {temp_dir}")
+    print(f"{Fore.CYAN}Extracting bootstrap to {temp_dir}")
     with zipfile.ZipFile(bootstrap_path, 'r') as zip_ref:
         zip_ref.extractall(temp_dir)
-    print(f"Bootstrap extraction complete")
+    print(f"{Fore.GREEN}Bootstrap extraction complete")
 
 def create_data_dir(data_dir):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-        print(f"Created directory: {data_dir}")
+        print(f"{Fore.GREEN}Created directory: {data_dir}")
     else:
-        print(f"Directory already exists: {data_dir}")
+        print(f"{Fore.YELLOW}Directory already exists: {data_dir}")
 
 def write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip):
     config_path = os.path.join(data_dir, "neoxa.conf")
@@ -106,7 +112,7 @@ def write_config(data_dir, rpcuser, rpcpassword, smartnodeblsprivkey, externalip
     )
     with open(config_path, "w") as config_file:
         config_file.write(config_content)
-    print(f"Wrote config to: {config_path}")
+    print(f"{Fore.GREEN}Wrote config to: {config_path}")
 
 def copy_bootstrap(temp_dir, data_dir):
     for item in os.listdir(temp_dir):
@@ -116,7 +122,7 @@ def copy_bootstrap(temp_dir, data_dir):
             shutil.copytree(s, d, dirs_exist_ok=True)
         else:
             shutil.copy2(s, d)
-    print(f"Copied bootstrap data to {data_dir}")
+    print(f"{Fore.GREEN}Copied bootstrap data to {data_dir}")
 
 def create_bash_script(home_dir, node_number, data_dir):
     script_content = f"""#!/bin/bash
@@ -178,19 +184,19 @@ exit 0
     with open(script_path, "w") as script_file:
         script_file.write(script_content)
     os.chmod(script_path, 0o755)
-    print(f"Created bash script: {script_path}")
+    print(f"{Fore.GREEN}Created bash script: {script_path}")
     return script_path
 
 def add_crontab_entry(script_path):
     user = getpass.getuser()
     cron_command = f"@reboot {script_path} start\n"
-    subprocess.run(f'(crontab -u {user} -l; echo "{cron_command}") | crontab -u {user} -', shell=True, check=True)
-    print(f"Added crontab entry for {script_path}")
+    subprocess.run(f'(crontab -u {user} -l; echo "{cron_command}") | crontab -u {user} -', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print(f"{Fore.GREEN}Added crontab entry for {script_path}")
 
 def start_smartnode(data_dir):
     command = [neoxa_bin, "-datadir=" + data_dir]
-    subprocess.run(command)
-    print(f"Started Neoxa smartnode with data directory: {data_dir}")
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print(f"{Fore.GREEN}Started Neoxa smartnode with data directory: {data_dir}")
 
 def get_existing_nodes(home_dir):
     existing_nodes = []
@@ -213,9 +219,9 @@ def check_system_requirements():
     available_disk_space = psutil.disk_usage('/').free
 
     print(f"{Fore.CYAN}System resources available:")
-    print(f"CPU Cores: {available_cores}")
-    print(f"Memory: {available_memory / (1024 * 1024 * 1024):.2f} GB")
-    print(f"Disk Space: {available_disk_space / (1024 * 1024 * 1024):.2f} GB")
+    print(f"{Fore.CYAN}CPU Cores: {available_cores}")
+    print(f"{Fore.CYAN}Memory: {available_memory / (1024 * 1024 * 1024):.2f} GB")
+    print(f"{Fore.CYAN}Disk Space: {available_disk_space / (1024 * 1024 * 1024):.2f} GB")
 
     if available_cores < required_cores:
         print(f"{Fore.RED}Error: Not enough CPU cores available. Required: {required_cores}, Available: {available_cores}")
@@ -234,10 +240,10 @@ def check_and_create_swap():
         print(f"{Fore.GREEN}Swap is already enabled.")
     else:
         print(f"{Fore.YELLOW}No swap found. Creating a 4GB swap file...")
-        subprocess.run(['sudo', 'fallocate', '-l', '4G', '/swapfile'])
-        subprocess.run(['sudo', 'chmod', '600', '/swapfile'])
-        subprocess.run(['sudo', 'mkswap', '/swapfile'])
-        subprocess.run(['sudo', 'swapon', '/swapfile'])
+        run_command(['sudo', 'fallocate', '-l', '4G', '/swapfile'])
+        run_command(['sudo', 'chmod', '600', '/swapfile'])
+        run_command(['sudo', 'mkswap', '/swapfile'])
+        run_command(['sudo', 'swapon', '/swapfile'])
         with open('/etc/fstab', 'a') as fstab:
             fstab.write('/swapfile none swap sw 0 0\n')
         print(f"{Fore.GREEN}Swap file created and enabled.")
@@ -262,7 +268,7 @@ def main():
     else:
         next_node_number = 1
 
-    num_smartnodes = int(input("Enter the number of additional smartnodes to install: "))
+    num_smartnodes = int(input(f"{Fore.CYAN}Enter the number of additional smartnodes to install: "))
     
     if not check_system_requirements():
         print(f"{Fore.RED}System does not meet the requirements for installing additional nodes.")
@@ -279,10 +285,10 @@ def main():
 
     nodes_info = []
     for i in range(next_node_number, next_node_number + num_smartnodes):
-        rpcuser = input(f"Enter RPC username for smartnode {i}: ")
-        rpcpassword = input(f"Enter RPC password for smartnode {i}: ")
-        smartnodeblsprivkey = input(f"Enter Smartnode BLS private key for smartnode {i}: ")
-        externalip = input(f"Enter external IP (and port) for smartnode {i}: ")
+        rpcuser = input(f"{Fore.CYAN}Enter RPC username for smartnode {i}: ")
+        rpcpassword = input(f"{Fore.CYAN}Enter RPC password for smartnode {i}: ")
+        smartnodeblsprivkey = input(f"{Fore.CYAN}Enter Smartnode BLS private key for smartnode {i}: ")
+        externalip = input(f"{Fore.CYAN}Enter external IP (and port) for smartnode {i}: ")
         nodes_info.append((home_dir, i, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir))
 
     threads = []
@@ -295,7 +301,7 @@ def main():
         thread.join()
 
     shutil.rmtree(temp_bootstrap_dir)
-    print("Removed temporary bootstrap directory")
+    print(f"{Fore.CYAN}Removed temporary bootstrap directory")
 
     print_thank_you()
 
