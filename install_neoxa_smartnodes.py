@@ -1,4 +1,6 @@
 import os
+import sys
+import argparse
 import subprocess
 import urllib.request
 import zipfile
@@ -10,25 +12,11 @@ from colorama import init, Fore, Style
 
 init(autoreset=True)
 
-neoxa_bin_dir = "/usr/local/bin"
-neoxa_bin = os.path.join(neoxa_bin_dir, "neoxad")
-neoxa_cli_bin = os.path.join(neoxa_bin_dir, "neoxa-cli")
-neoxa_download_url = "https://github.com/NeoxaChain/Neoxa/releases/download/v5.1.1.4/neoxad-5.1.1.4-linux64.zip"
-bootstrap_url = "https://downloads.neoxa.net/bootstrap.zip"
-bootstrap_path = os.path.expanduser("~/bootstrap.zip")
-neoxa_conf_template = """
-rpcuser={rpcuser}
-rpcpassword={rpcpassword}
-rpcport=9494
-rpcallowip=127.0.0.1
-server=1
-daemon=1
-listen=1
-smartnodeblsprivkey={smartnodeblsprivkey}
-externalip={externalip}
-"""
-
-donation_address = "GaRJcuLsqEcjbFjJVcenWG8EXsFmULdMwo"
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Neoxa Smartnode Installer")
+    parser.add_argument("--home-dir", type=str, required=True, help="Home directory of the current user")
+    args = parser.parse_args()
+    return args.home_dir
 
 def print_banner():
     banner = f"""
@@ -63,7 +51,7 @@ def install_neoxad():
     if is_neoxad_installed():
         print(f"{Fore.YELLOW}neoxad is already installed. Skipping installation.")
         return
-    neoxa_zip = os.path.expanduser("~/neoxad.zip")
+    neoxa_zip = os.path.join(user_home_dir, "neoxad.zip")
     print(f"{Fore.CYAN}Downloading neoxad from {neoxa_download_url} to {neoxa_zip}")
     urllib.request.urlretrieve(neoxa_download_url, neoxa_zip)
     with zipfile.ZipFile(neoxa_zip, 'r') as zip_ref:
@@ -196,41 +184,25 @@ def add_crontab_entry(script_path):
 def start_smartnode(data_dir):
     command = [neoxa_bin, "-datadir=" + data_dir]
     subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(f"{Fore.GREEN}Started Neoxa smartnode with data directory: {data_dir}")
-
-def get_existing_nodes(home_dir):
-    existing_nodes = []
-    for item in os.listdir(home_dir):
-        if item.startswith("neoxa_node_"):
-            try:
-                node_number = int(item.split("_")[-1])
-                existing_nodes.append(node_number)
-            except ValueError:
-                continue
-    return existing_nodes
+    print(f"{Fore.GREEN}Started smartnode with data directory: {data_dir}")
 
 def check_system_requirements():
-    required_cores = 2
-    required_memory = 4 * 1024 * 1024 * 1024  # 4GB in bytes
-    required_disk_space = 60 * 1024 * 1024 * 1024  # 60GB in bytes
+    cpu_cores = psutil.cpu_count(logical=True)
+    memory = psutil.virtual_memory().total / (1024 * 1024 * 1024)  # GB
+    disk_space = psutil.disk_usage('/').free / (1024 * 1024 * 1024)  # GB
+    print(f"{Fore.CYAN}System resources available:\n"
+          f"CPU Cores: {cpu_cores}\n"
+          f"Memory: {memory:.2f} GB\n"
+          f"Disk Space: {disk_space:.2f} GB")
+    
+    required_memory = 4
+    required_disk_space = 60
 
-    available_cores = psutil.cpu_count(logical=False)
-    available_memory = psutil.virtual_memory().available
-    available_disk_space = psutil.disk_usage('/').free
-
-    print(f"{Fore.CYAN}System resources available:")
-    print(f"{Fore.CYAN}CPU Cores: {available_cores}")
-    print(f"{Fore.CYAN}Memory: {available_memory / (1024 * 1024 * 1024):.2f} GB")
-    print(f"{Fore.CYAN}Disk Space: {available_disk_space / (1024 * 1024 * 1024):.2f} GB")
-
-    if available_cores < required_cores:
-        print(f"{Fore.RED}Error: Not enough CPU cores available. Required: {required_cores}, Available: {available_cores}")
+    if memory < required_memory:
+        print(f"{Fore.RED}Error: Not enough memory available. Required: {required_memory} GB, Available: {memory:.2f} GB")
         return False
-    if available_memory < required_memory:
-        print(f"{Fore.RED}Error: Not enough memory available. Required: {required_memory / (1024 * 1024 * 1024):.2f} GB, Available: {available_memory / (1024 * 1024 * 1024):.2f} GB")
-        return False
-    if available_disk_space < required_disk_space:
-        print(f"{Fore.RED}Error: Not enough disk space available. Required: {required_disk_space / (1024 * 1024 * 1024):.2f} GB, Available: {available_disk_space / (1024 * 1024 * 1024):.2f} GB")
+    if disk_space < required_disk_space:
+        print(f"{Fore.RED}Error: Not enough disk space available. Required: {required_disk_space} GB, Available: {disk_space:.2f} GB")
         return False
     return True
 
@@ -258,10 +230,11 @@ def setup_smartnode(home_dir, node_number, rpcuser, rpcpassword, smartnodeblspri
     start_smartnode(data_dir)
 
 def main():
+    global user_home_dir
+    user_home_dir = parse_arguments()
     print_banner()
-    home_dir = os.path.expanduser("~")
-    
-    existing_nodes = get_existing_nodes(home_dir)
+
+    existing_nodes = get_existing_nodes(user_home_dir)
     num_existing_nodes = len(existing_nodes)
     if existing_nodes:
         next_node_number = max(existing_nodes) + 1
@@ -284,7 +257,7 @@ def main():
     install_neoxad()
     check_and_download_bootstrap()
     
-    temp_bootstrap_dir = os.path.join(home_dir, "temp_bootstrap")
+    temp_bootstrap_dir = os.path.join(user_home_dir, "temp_bootstrap")
     os.makedirs(temp_bootstrap_dir, exist_ok=True)
     extract_bootstrap(temp_bootstrap_dir)
 
@@ -294,7 +267,7 @@ def main():
         rpcpassword = input(f"{Fore.CYAN}Enter RPC password for smartnode {i}: ")
         smartnodeblsprivkey = input(f"{Fore.CYAN}Enter Smartnode BLS private key for smartnode {i}: ")
         externalip = input(f"{Fore.CYAN}Enter external IP (and port) for smartnode {i}: ")
-        nodes_info.append((home_dir, i, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir))
+        nodes_info.append((user_home_dir, i, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir))
 
     threads = []
     for node_info in nodes_info:
