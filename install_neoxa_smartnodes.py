@@ -15,7 +15,7 @@ neoxa_bin = os.path.join(neoxa_bin_dir, "neoxad")
 neoxa_cli_bin = os.path.join(neoxa_bin_dir, "neoxa-cli")
 neoxa_download_url = "https://github.com/NeoxaChain/Neoxa/releases/download/v5.1.1.4/neoxad-5.1.1.4-linux64.zip"
 bootstrap_url = "https://downloads.neoxa.net/bootstrap.zip"
-bootstrap_path = "/tmp/bootstrap.zip"
+bootstrap_path = os.path.expanduser("~/bootstrap.zip")
 neoxa_conf_template = """
 rpcuser={rpcuser}
 rpcpassword={rpcpassword}
@@ -33,10 +33,10 @@ donation_address = "GaRJcuLsqEcjbFjJVcenWG8EXsFmULdMwo"
 def print_banner():
     banner = f"""
 {Fore.MAGENTA}*********************************************
-{Fore.MAGENTA}*          Script Developer: Ch3ckr          *
+{Fore.MAGENTA}*          Script Developer: Ch3ckr         *
 {Fore.MAGENTA}*                                           *
-{Fore.MAGENTA}*             Donation Address               *
-{Fore.MAGENTA}*    {donation_address}    *
+{Fore.MAGENTA}*             Donation Address              *
+{Fore.MAGENTA}*   {donation_address}   *
 {Fore.MAGENTA}*********************************************
 """
     print(banner)
@@ -46,8 +46,8 @@ def print_thank_you():
 {Fore.LIGHTMAGENTA_EX}*********************************************
 {Fore.LIGHTMAGENTA_EX}*       Thank you for using this script!      *
 {Fore.LIGHTMAGENTA_EX}*                                           *
-{Fore.LIGHTMAGENTA_EX}*             Donation Address               *
-{Fore.LIGHTMAGENTA_EX}*    {donation_address}    *
+{Fore.LIGHTMAGENTA_EX}*             Donation Address              *
+{Fore.LIGHTMAGENTA_EX}*   {donation_address}   *
 {Fore.LIGHTMAGENTA_EX}*********************************************
 """
     print(thank_you)
@@ -63,7 +63,7 @@ def install_neoxad():
     if is_neoxad_installed():
         print(f"{Fore.YELLOW}neoxad is already installed. Skipping installation.")
         return
-    neoxa_zip = "/tmp/neoxad.zip"
+    neoxa_zip = os.path.expanduser("~/neoxad.zip")
     print(f"{Fore.CYAN}Downloading neoxad from {neoxa_download_url} to {neoxa_zip}")
     urllib.request.urlretrieve(neoxa_download_url, neoxa_zip)
     with zipfile.ZipFile(neoxa_zip, 'r') as zip_ref:
