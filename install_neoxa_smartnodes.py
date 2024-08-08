@@ -13,7 +13,7 @@ init(autoreset=True)
 neoxa_bin_dir = "/usr/local/bin"
 neoxa_bin = os.path.join(neoxa_bin_dir, "neoxad")
 neoxa_cli_bin = os.path.join(neoxa_bin_dir, "neoxa-cli")
-neoxa_download_url = "https://github.com/NeoxaChain/Neoxa/releases/download/v5.1.1.4/neoxad-5.1.1.4-linux64.zip"
+neoxa_download_url = "https://github.com/dismaster/NeoxaMultiNodeInstaller/main/install_neoxa_smartnodes.py"
 bootstrap_url = "https://downloads.neoxa.net/bootstrap.zip"
 bootstrap_path = "/tmp/bootstrap.zip"
 neoxa_conf_template = """
@@ -139,8 +139,16 @@ restart() {{
     start
 }}
 
-status() {{
+smartnode_status() {{
     ${{NEOXA_CLI_BIN}} -datadir=${{DATA_DIR}} smartnode status
+}}
+
+status() {{
+    if screen -list | grep -q "${{SCREEN_NAME}}"; then
+        echo "Node is running"
+    else
+        echo "Node is not running"
+    fi
 }}
 
 case "$1" in
@@ -153,11 +161,14 @@ case "$1" in
     restart)
         restart
         ;;
+    smartnode_status)
+        smartnode_status
+        ;;
     status)
         status
         ;;
     *)
-        echo "Usage: $0 {{start|stop|restart|status}}"
+        echo "Usage: $0 {{start|stop|restart|smartnode_status|status}}"
         exit 1
 esac
 
@@ -192,10 +203,10 @@ def get_existing_nodes(home_dir):
                 continue
     return existing_nodes
 
-def check_system_requirements(num_nodes):
-    required_cores = num_nodes * 2
-    required_memory = num_nodes * 4 * 1024 * 1024 * 1024  # 4GB per node in bytes
-    required_disk_space = num_nodes * 60 * 1024 * 1024 * 1024  # 60GB per node in bytes
+def check_system_requirements():
+    required_cores = 2
+    required_memory = 4 * 1024 * 1024 * 1024  # 4GB in bytes
+    required_disk_space = 60 * 1024 * 1024 * 1024  # 60GB in bytes
 
     available_cores = psutil.cpu_count(logical=False)
     available_memory = psutil.virtual_memory().available
@@ -239,7 +250,7 @@ def main():
 
     num_smartnodes = int(input("Enter the number of additional smartnodes to install: "))
     
-    if not check_system_requirements(num_smartnodes):
+    if not check_system_requirements():
         print(f"{Fore.RED}System does not meet the requirements for installing additional nodes.")
         return
 
