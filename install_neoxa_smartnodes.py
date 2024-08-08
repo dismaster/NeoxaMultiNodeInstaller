@@ -32,21 +32,21 @@ donation_address = "GaRJcuLsqEcjbFjJVcenWG8EXsFmULdMwo"
 
 def print_banner():
     banner = f"""
-{Fore.CYAN}*********************************************
-*            Script Developer: Ch3ckr         *
-*                                             *
-*    Donation Address: {donation_address}     *
-*********************************************
+{Fore.MAGENTA}*********************************************
+{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX}           Script Developer: Ch3ckr          {Fore.MAGENTA}*
+{Fore.MAGENTA}*                                             *
+{Fore.MAGENTA}*{Fore.LIGHTMAGENTA_EX}    Donation Address: {donation_address}    {Fore.MAGENTA}*
+{Fore.MAGENTA}*********************************************
 """
     print(banner)
 
 def print_thank_you():
     thank_you = f"""
-{Fore.GREEN}*********************************************
-*       Thank you for using this script!      *
-*                                             *
-*    Donation Address: {donation_address}     *
-*********************************************
+{Fore.LIGHTMAGENTA_EX}*********************************************
+{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA}       Thank you for using this script!      {Fore.LIGHTMAGENTA_EX}*
+{Fore.LIGHTMAGENTA_EX}*                                             *
+{Fore.LIGHTMAGENTA_EX}*{Fore.MAGENTA}    Donation Address: {donation_address}    {Fore.LIGHTMAGENTA_EX}*
+{Fore.LIGHTMAGENTA_EX}*********************************************
 """
     print(thank_you)
 
@@ -228,6 +228,20 @@ def check_system_requirements():
         return False
     return True
 
+def check_and_create_swap():
+    swap = subprocess.run(['swapon', '--show'], capture_output=True, text=True)
+    if swap.stdout:
+        print(f"{Fore.GREEN}Swap is already enabled.")
+    else:
+        print(f"{Fore.YELLOW}No swap found. Creating a 4GB swap file...")
+        subprocess.run(['sudo', 'fallocate', '-l', '4G', '/swapfile'])
+        subprocess.run(['sudo', 'chmod', '600', '/swapfile'])
+        subprocess.run(['sudo', 'mkswap', '/swapfile'])
+        subprocess.run(['sudo', 'swapon', '/swapfile'])
+        with open('/etc/fstab', 'a') as fstab:
+            fstab.write('/swapfile none swap sw 0 0\n')
+        print(f"{Fore.GREEN}Swap file created and enabled.")
+
 def setup_smartnode(home_dir, node_number, rpcuser, rpcpassword, smartnodeblsprivkey, externalip, temp_bootstrap_dir):
     data_dir = os.path.join(home_dir, f"neoxa_node_{node_number}")
     create_data_dir(data_dir)
@@ -253,6 +267,8 @@ def main():
     if not check_system_requirements():
         print(f"{Fore.RED}System does not meet the requirements for installing additional nodes.")
         return
+
+    check_and_create_swap()
 
     install_neoxad()
     check_and_download_bootstrap()
