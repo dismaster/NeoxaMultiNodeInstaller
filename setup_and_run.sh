@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 # Define variables
 PYTHON_SCRIPT_URL="https://raw.githubusercontent.com/dismaster/NeoxaMultiNodeInstaller/main/install_neoxa_smartnodes.py"
 PYTHON_SCRIPT_NAME="install_neoxa_smartnodes.py"
-REQUIRED_PACKAGES=("python3" "python3-pip" "curl" "screen")
+REQUIRED_PACKAGES=("python3" "python3-pip" "curl" "screen" "python3-psutil" "python3-tqdm" "python3-colorama")
 
 # Function to install required packages
 install_prerequisites() {
@@ -23,6 +23,7 @@ install_prerequisites() {
             sudo apt-get install -y $pkg > /dev/null
         fi
     done
+    echo -e "${GREEN}All required packages installed successfully.${NC}"
 }
 
 # Function to download the Python script
